@@ -2,7 +2,9 @@ package uk.tw.energy.domain;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 public class PricePlan {
@@ -32,15 +34,28 @@ public class PricePlan {
         return unitRate;
     }
 
-    public BigDecimal getPrice(LocalDateTime dateTime) {
-        return peakTimeMultipliers.stream()
+    @Override
+    public String toString() {
+        return "PricePlan{" +
+                "energySupplier='" + energySupplier + '\'' +
+                ", planName='" + planName + '\'' +
+                ", unitRate=" + unitRate +
+                ", peakTimeMultipliers=" + peakTimeMultipliers +
+                '}';
+    }
+
+    public BigDecimal getPrice(Instant timestamp) {
+        LocalDateTime dateTime = LocalDateTime.ofInstant(timestamp, ZoneOffset.UTC);
+        BigDecimal price = peakTimeMultipliers.stream()
                 .filter(multiplier -> multiplier.dayOfWeek.equals(dateTime.getDayOfWeek()))
                 .findFirst()
                 .map(multiplier -> unitRate.multiply(multiplier.multiplier))
                 .orElse(unitRate);
+        System.out.println("DateTime: " + dateTime + ", Price: " + price);
+        return price;
     }
 
-    static class PeakTimeMultiplier {
+    public static class PeakTimeMultiplier {
 
         DayOfWeek dayOfWeek;
         BigDecimal multiplier;
@@ -48,6 +63,14 @@ public class PricePlan {
         public PeakTimeMultiplier(DayOfWeek dayOfWeek, BigDecimal multiplier) {
             this.dayOfWeek = dayOfWeek;
             this.multiplier = multiplier;
+        }
+
+        public DayOfWeek getDayOfWeek() {
+            return dayOfWeek;
+        }
+
+        public BigDecimal getMultiplier() {
+            return multiplier;
         }
     }
 }

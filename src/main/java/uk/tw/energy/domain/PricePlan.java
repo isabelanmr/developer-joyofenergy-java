@@ -36,12 +36,11 @@ public class PricePlan {
 
     @Override
     public String toString() {
-        return "PricePlan{" +
-                "energySupplier='" + energySupplier + '\'' +
-                ", planName='" + planName + '\'' +
-                ", unitRate=" + unitRate +
-                ", peakTimeMultipliers=" + peakTimeMultipliers +
-                '}';
+        return "PricePlan{" + "energySupplier='"
+                + energySupplier + '\'' + ", planName='"
+                + planName + '\'' + ", unitRate="
+                + unitRate + ", peakTimeMultipliers="
+                + peakTimeMultipliers + '}';
     }
 
     public BigDecimal getPrice(Instant timestamp) {

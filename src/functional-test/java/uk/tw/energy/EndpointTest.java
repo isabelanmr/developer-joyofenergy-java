@@ -91,7 +91,8 @@ public class EndpointTest {
         ResponseEntity<Map[]> response =
                 restTemplate.getForEntity("/price-plans/recommend/" + smartMeterId + "?limit=2", Map[].class);
 
-        assertThat(response.getBody()).containsExactly(Map.of("price-plan-2", 22.2222), Map.of("price-plan-1", 44.4445));
+        assertThat(response.getBody())
+                .containsExactly(Map.of("price-plan-2", 22.2222), Map.of("price-plan-1", 44.4445));
     }
 
     private void populateReadingsForMeter(String smartMeterId, List<ElectricityReading> data) {

@@ -1,14 +1,6 @@
 package uk.tw.energy.controller;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import uk.tw.energy.domain.ElectricityReading;
-import uk.tw.energy.domain.PricePlan;
-import uk.tw.energy.service.AccountService;
-import uk.tw.energy.service.MeterReadingService;
-import uk.tw.energy.service.PricePlanService;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -18,8 +10,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import uk.tw.energy.domain.ElectricityReading;
+import uk.tw.energy.domain.PricePlan;
+import uk.tw.energy.service.AccountService;
+import uk.tw.energy.service.MeterReadingService;
+import uk.tw.energy.service.PricePlanService;
 
 public class PricePlanComparatorControllerTest {
     private static final String WORST_PLAN_ID = "worst-supplier";
@@ -44,7 +43,7 @@ public class PricePlanComparatorControllerTest {
 
         controller = new PricePlanComparatorController(pricePlanService, accountService);
     }
-    
+
     /**
      * Testa o método {@link PricePlanComparatorController#calculatedCostForEachPricePlan(String)}
      * para o caso em que há leituras de consumo de energia e o cálculo deve ser realizado com sucesso.
@@ -60,9 +59,11 @@ public class PricePlanComparatorControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        // Para evitar avisos de cast não verificado. Isso é necessário porque o tipo genérico do mapa não pode ser verificado em tempo de execução.
+        // Para evitar avisos de cast não verificado. Isso é necessário porque o tipo genérico do mapa não pode ser
+        // verificado em tempo de execução.
         @SuppressWarnings("unchecked")
-        Map<String, BigDecimal> originalComparisons = (Map<String, BigDecimal>) response.getBody().get("pricePlanComparisons");
+        Map<String, BigDecimal> originalComparisons =
+                (Map<String, BigDecimal>) response.getBody().get("pricePlanComparisons");
         Map<String, BigDecimal> roundedComparisons = getRoundedComparisons(originalComparisons);
 
         response.getBody().put("pricePlanComparisons", roundedComparisons);
@@ -87,7 +88,7 @@ public class PricePlanComparatorControllerTest {
     public void calculatedCostForEachPricePlan_noReadings() {
         ResponseEntity<Map<String, Object>> response = controller.calculatedCostForEachPricePlan("not-found");
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
 
     /**
@@ -107,7 +108,8 @@ public class PricePlanComparatorControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         Map<String, Object> map = response.getBody().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().setScale(1, RoundingMode.HALF_UP)));
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey, entry -> entry.getValue().setScale(1, RoundingMode.HALF_UP)));
 
         var expectedPricePlanToCost = List.of(
                 new AbstractMap.SimpleEntry<>(BEST_PLAN_ID, BigDecimal.valueOf(9.5)),
@@ -136,7 +138,8 @@ public class PricePlanComparatorControllerTest {
                 controller.recommendCheapestPricePlans(SMART_METER_ID, 2);
 
         Map<String, Object> map = response.getBody().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().setScale(1, RoundingMode.HALF_UP)));
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey, entry -> entry.getValue().setScale(1, RoundingMode.HALF_UP)));
 
         var expectedPricePlanToCost = List.of(
                 new AbstractMap.SimpleEntry<>(BEST_PLAN_ID, BigDecimal.valueOf(9.4)),
@@ -164,7 +167,8 @@ public class PricePlanComparatorControllerTest {
                 controller.recommendCheapestPricePlans(SMART_METER_ID, 5);
 
         Map<String, Object> map = response.getBody().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().setScale(1, RoundingMode.HALF_UP)));
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey, entry -> entry.getValue().setScale(1, RoundingMode.HALF_UP)));
 
         var expectedPricePlanToCost = List.of(
                 new AbstractMap.SimpleEntry<>(BEST_PLAN_ID, BigDecimal.valueOf(14.0)),
@@ -184,7 +188,8 @@ public class PricePlanComparatorControllerTest {
     private static Map<String, BigDecimal> getRoundedComparisons(Map<String, BigDecimal> originalComparisons) {
         Map<String, BigDecimal> roundedComparisons = new HashMap<>();
 
-        // A lógica de arredondamento foi extraída para um método separado para melhorar a clareza e reutilização do código.
+        // A lógica de arredondamento foi extraída para um método separado para melhorar a clareza e reutilização do
+        // código.
         for (Map.Entry<String, BigDecimal> entry : originalComparisons.entrySet()) {
             String key = entry.getKey();
             BigDecimal value = entry.getValue();

@@ -30,13 +30,16 @@ public class SeedingApplicationDataConfiguration {
         List<PricePlan.PeakTimeMultiplier> peakTimeMultipliers = new ArrayList<>();
         peakTimeMultipliers.add(new PricePlan.PeakTimeMultiplier(DayOfWeek.MONDAY, BigDecimal.valueOf(2)));
         peakTimeMultipliers.add(new PricePlan.PeakTimeMultiplier(DayOfWeek.TUESDAY, BigDecimal.valueOf(2)));
-        peakTimeMultipliers.add(new PricePlan.PeakTimeMultiplier(DayOfWeek.WEDNESDAY, BigDecimal.valueOf(100)));
-        peakTimeMultipliers.add(new PricePlan.PeakTimeMultiplier(DayOfWeek.THURSDAY, BigDecimal.valueOf(100)));
-        peakTimeMultipliers.add(new PricePlan.PeakTimeMultiplier(DayOfWeek.FRIDAY, BigDecimal.valueOf(200)));
+        peakTimeMultipliers.add(new PricePlan.PeakTimeMultiplier(DayOfWeek.WEDNESDAY, BigDecimal.valueOf(10)));
+        peakTimeMultipliers.add(new PricePlan.PeakTimeMultiplier(DayOfWeek.THURSDAY, BigDecimal.valueOf(10)));
+        peakTimeMultipliers.add(new PricePlan.PeakTimeMultiplier(DayOfWeek.FRIDAY, BigDecimal.valueOf(20)));
 
-        pricePlans.add(new PricePlan(MOST_EVIL_PRICE_PLAN_ID, "Dr Evil's Dark Energy", BigDecimal.TEN, peakTimeMultipliers));
-        pricePlans.add(new PricePlan(RENEWABLES_PRICE_PLAN_ID, "The Green Eco", BigDecimal.valueOf(2), peakTimeMultipliers));
-        pricePlans.add(new PricePlan(STANDARD_PRICE_PLAN_ID, "Power for Everyone", BigDecimal.ONE, peakTimeMultipliers));
+        pricePlans.add(
+                new PricePlan(MOST_EVIL_PRICE_PLAN_ID, "Dr Evil's Dark Energy", BigDecimal.TEN, peakTimeMultipliers));
+        pricePlans.add(
+                new PricePlan(RENEWABLES_PRICE_PLAN_ID, "The Green Eco", BigDecimal.valueOf(2), peakTimeMultipliers));
+        pricePlans.add(
+                new PricePlan(STANDARD_PRICE_PLAN_ID, "Power for Everyone", BigDecimal.ONE, peakTimeMultipliers));
 
         System.out.println("Price plans initialized: {}" + pricePlans);
         return pricePlans;

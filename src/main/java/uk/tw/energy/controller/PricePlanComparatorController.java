@@ -16,6 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.tw.energy.service.AccountService;
 import uk.tw.energy.service.PricePlanService;
 
+
+/**
+ * Controlador responsável por comparar e recomendar planos de preços com base no consumo de eletricidade.
+ */
 @RestController
 @RequestMapping("/price-plans")
 public class PricePlanComparatorController {
@@ -25,11 +29,24 @@ public class PricePlanComparatorController {
     private final PricePlanService pricePlanService;
     private final AccountService accountService;
 
+
+    /**
+     * Construtor para inicializar os serviços de planos de preços e contas.
+     *
+     * @param pricePlanService Serviço de planos de preços.
+     * @param accountService Serviço de contas.
+     */
     public PricePlanComparatorController(PricePlanService pricePlanService, AccountService accountService) {
         this.pricePlanService = pricePlanService;
         this.accountService = accountService;
     }
 
+    /**
+     * Calcula o custo de consumo de eletricidade para cada plano de preços associado a um smart meter ID.
+     *
+     * @param smartMeterId ID do smart meter.
+     * @return Um mapa contendo o ID do plano de preços e a comparação de preços, ou um status 204 se não houver dados de consumo.
+     */
     @GetMapping("/compare-all/{smartMeterId}")
     public ResponseEntity<Map<String, Object>> calculatedCostForEachPricePlan(@PathVariable String smartMeterId) {
         String pricePlanId = accountService.getPricePlanIdForSmartMeterId(smartMeterId);
@@ -37,18 +54,25 @@ public class PricePlanComparatorController {
                 pricePlanService.getConsumptionCostOfElectricityReadingsForEachPricePlan(smartMeterId);
 
         if (!consumptionsForPricePlans.isPresent()) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.noContent()
+                    .header("Message", "Nenhum dado de consumo encontrado para o smart meter ID especificado")
+                    .build();
         }
 
         Map<String, Object> pricePlanComparisons = new HashMap<>();
         pricePlanComparisons.put(PRICE_PLAN_ID_KEY, pricePlanId);
         pricePlanComparisons.put(PRICE_PLAN_COMPARISONS_KEY, consumptionsForPricePlans.get());
 
-        return consumptionsForPricePlans.isPresent()
-                ? ResponseEntity.ok(pricePlanComparisons)
-                : ResponseEntity.notFound().build();
+        return ResponseEntity.ok(pricePlanComparisons);
     }
 
+    /**
+     * Recomenda os planos de preços mais baratos com base no consumo de eletricidade para um smart meter ID.
+     *
+     * @param smartMeterId ID do smart meter.
+     * @param limit Limite opcional de quantos planos de preços devem ser retornados.
+     * @return Uma lista de entradas de mapa contendo os planos de preços recomendados e seus custos, ou um status 204 se não houver dados de consumo.
+     */
     @GetMapping("/recommend/{smartMeterId}")
     public ResponseEntity<List<Map.Entry<String, BigDecimal>>> recommendCheapestPricePlans(
             @PathVariable String smartMeterId, @RequestParam(value = "limit", required = false) Integer limit) {
@@ -56,7 +80,9 @@ public class PricePlanComparatorController {
                 pricePlanService.getConsumptionCostOfElectricityReadingsForEachPricePlan(smartMeterId);
 
         if (!consumptionsForPricePlans.isPresent()) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.noContent()
+                    .header("Message", "Nenhum dado de consumo encontrado para o smart meter ID especificado")
+                    .build();
         }
 
         List<Map.Entry<String, BigDecimal>> recommendations =

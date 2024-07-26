@@ -21,7 +21,7 @@ import uk.tw.energy.domain.ElectricityReading;
 import uk.tw.energy.domain.MeterReadings;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = App.class)
-public class EndpointTest {
+class EndpointTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -33,7 +33,7 @@ public class EndpointTest {
     }
 
     @Test
-    public void shouldStoreReadings() {
+    void shouldStoreReadings() {
         MeterReadings meterReadings =
                 new MeterReadingsBuilder().generateElectricityReadings().build();
         HttpEntity<MeterReadings> entity = toHttpEntity(meterReadings);
@@ -45,7 +45,7 @@ public class EndpointTest {
 
     @SuppressWarnings("DataFlowIssue")
     @Test
-    public void givenMeterIdShouldReturnAMeterReadingAssociatedWithMeterId() {
+    void givenMeterIdShouldReturnAMeterReadingAssociatedWithMeterId() {
         String smartMeterId = "alice";
         List<ElectricityReading> data = List.of(
                 new ElectricityReading(Instant.parse("2024-04-26T00:00:10.00Z"), new BigDecimal(10)),
@@ -61,7 +61,7 @@ public class EndpointTest {
     }
 
     @Test
-    public void shouldCalculateAllPrices() {
+    void shouldCalculateAllPrices() {
         String smartMeterId = "bob";
         List<ElectricityReading> data = List.of(
                 new ElectricityReading(Instant.parse("2024-04-26T00:00:10.00Z"), new BigDecimal(10)),
@@ -74,13 +74,13 @@ public class EndpointTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody())
-                .isEqualTo(new CompareAllResponse(
-                        Map.of("price-plan-0", 222, "price-plan-1", 44, "price-plan-2", 22), null));
+                .isEqualTo(
+                        new CompareAllResponse(Map.of("price-plan-0", 22, "price-plan-1", 4, "price-plan-2", 2), null));
     }
 
     @SuppressWarnings("rawtypes")
     @Test
-    public void givenMeterIdAndLimitShouldReturnRecommendedCheapestPricePlans() {
+    void givenMeterIdAndLimitShouldReturnRecommendedCheapestPricePlans() {
         String smartMeterId = "jane";
         List<ElectricityReading> data = List.of(
                 new ElectricityReading(Instant.parse("2024-04-26T00:00:10.00Z"), new BigDecimal(10)),
@@ -91,8 +91,7 @@ public class EndpointTest {
         ResponseEntity<Map[]> response =
                 restTemplate.getForEntity("/price-plans/recommend/" + smartMeterId + "?limit=2", Map[].class);
 
-        assertThat(response.getBody())
-                .containsExactly(Map.of("price-plan-2", 22.2222), Map.of("price-plan-1", 44.4445));
+        assertThat(response.getBody()).containsExactly(Map.of("price-plan-2", 2.2222), Map.of("price-plan-1", 4.4445));
     }
 
     private void populateReadingsForMeter(String smartMeterId, List<ElectricityReading> data) {

@@ -1,14 +1,13 @@
 package uk.tw.energy.controller;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.AbstractMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,7 +19,7 @@ import uk.tw.energy.service.AccountService;
 import uk.tw.energy.service.MeterReadingService;
 import uk.tw.energy.service.PricePlanService;
 
-public class PricePlanComparatorControllerTest {
+class PricePlanComparatorControllerTest {
     private static final String WORST_PLAN_ID = "worst-supplier";
     private static final String BEST_PLAN_ID = "best-supplier";
     private static final String SECOND_BEST_PLAN_ID = "second-best-supplier";
@@ -28,20 +27,22 @@ public class PricePlanComparatorControllerTest {
     private PricePlanComparatorController controller;
     private MeterReadingService meterReadingService;
     private AccountService accountService;
+    private PricePlanService pricePlanService;
 
     @BeforeEach
     public void setUp() {
-        meterReadingService = new MeterReadingService(new HashMap<>());
+        meterReadingService = mock(MeterReadingService.class);
+        accountService = mock(AccountService.class);
 
-        PricePlan pricePlan1 = new PricePlan(WORST_PLAN_ID, null, BigDecimal.TEN, List.of());
-        PricePlan pricePlan2 = new PricePlan(BEST_PLAN_ID, null, BigDecimal.ONE, List.of());
-        PricePlan pricePlan3 = new PricePlan(SECOND_BEST_PLAN_ID, null, BigDecimal.valueOf(2), List.of());
-        List<PricePlan> pricePlans = List.of(pricePlan1, pricePlan2, pricePlan3);
-        PricePlanService pricePlanService = new PricePlanService(pricePlans, meterReadingService);
-
-        accountService = new AccountService(Map.of(SMART_METER_ID, WORST_PLAN_ID));
+        PricePlan pricePlan1 = new PricePlan(WORST_PLAN_ID, null, BigDecimal.TEN, new ArrayList<>());
+        PricePlan pricePlan2 = new PricePlan(BEST_PLAN_ID, null, BigDecimal.ONE, new ArrayList<>());
+        PricePlan pricePlan3 = new PricePlan(SECOND_BEST_PLAN_ID, null, BigDecimal.valueOf(2), new ArrayList<>());
+        List<PricePlan> pricePlans = new ArrayList<>(List.of(pricePlan1, pricePlan2, pricePlan3));
+        pricePlanService = new PricePlanService(pricePlans, meterReadingService);
 
         controller = new PricePlanComparatorController(pricePlanService, accountService);
+
+        when(accountService.getPricePlanIdForSmartMeterId(SMART_METER_ID)).thenReturn(WORST_PLAN_ID);
     }
 
     /**
@@ -50,17 +51,16 @@ public class PricePlanComparatorControllerTest {
      * Verifica se os custos calculados para cada plano são arredondados e retornados corretamente.
      */
     @Test
-    public void calculatedCostForEachPricePlan_happyPath() {
+    void calculatedCostForEachPricePlan_happyPath() {
         var electricityReading = new ElectricityReading(Instant.now().minusSeconds(3600), BigDecimal.valueOf(15.0));
         var otherReading = new ElectricityReading(Instant.now(), BigDecimal.valueOf(5.0));
-        meterReadingService.storeReadings(SMART_METER_ID, List.of(electricityReading, otherReading));
+        when(meterReadingService.getReadings(SMART_METER_ID))
+                .thenReturn(Optional.of(List.of(electricityReading, otherReading)));
 
         ResponseEntity<Map<String, Object>> response = controller.calculatedCostForEachPricePlan(SMART_METER_ID);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        // Para evitar avisos de cast não verificado. Isso é necessário porque o tipo genérico do mapa não pode ser
-        // verificado em tempo de execução.
         @SuppressWarnings("unchecked")
         Map<String, BigDecimal> originalComparisons =
                 (Map<String, BigDecimal>) response.getBody().get("pricePlanComparisons");
@@ -85,7 +85,9 @@ public class PricePlanComparatorControllerTest {
      * Verifica se o status da resposta é NOT_FOUND (404) quando o identificador do medidor não é encontrado.
      */
     @Test
-    public void calculatedCostForEachPricePlan_noReadings() {
+    void calculatedCostForEachPricePlan_noReadings() {
+        when(meterReadingService.getReadings("not-found")).thenReturn(Optional.empty());
+
         ResponseEntity<Map<String, Object>> response = controller.calculatedCostForEachPricePlan("not-found");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
@@ -97,10 +99,11 @@ public class PricePlanComparatorControllerTest {
      * Verifica se a lista de planos recomendados é calculada corretamente com base nas leituras de consumo.
      */
     @Test
-    public void recommendCheapestPricePlans_noLimit() {
+    void recommendCheapestPricePlans_noLimit() {
         var electricityReading = new ElectricityReading(Instant.now().minusSeconds(1800), BigDecimal.valueOf(35.0));
         var otherReading = new ElectricityReading(Instant.now(), BigDecimal.valueOf(3.0));
-        meterReadingService.storeReadings(SMART_METER_ID, List.of(electricityReading, otherReading));
+        when(meterReadingService.getReadings(SMART_METER_ID))
+                .thenReturn(Optional.of(List.of(electricityReading, otherReading)));
 
         ResponseEntity<List<Map.Entry<String, BigDecimal>>> response =
                 controller.recommendCheapestPricePlans(SMART_METER_ID, null);
@@ -120,6 +123,7 @@ public class PricePlanComparatorControllerTest {
         for (AbstractMap.SimpleEntry<String, BigDecimal> entry : expectedPricePlanToCost) {
             map2.put(entry.getKey(), entry.getValue());
         }
+
         assertThat(map).isEqualTo(map2);
     }
 
@@ -129,26 +133,30 @@ public class PricePlanComparatorControllerTest {
      * Verifica se apenas o número especificado de planos mais baratos é retornado com base nas leituras de consumo.
      */
     @Test
-    public void recommendCheapestPricePlans_withLimit() {
-        var electricityReading = new ElectricityReading(Instant.now().minusSeconds(2700), BigDecimal.valueOf(5.0));
-        var otherReading = new ElectricityReading(Instant.now(), BigDecimal.valueOf(20.0));
-        meterReadingService.storeReadings(SMART_METER_ID, List.of(electricityReading, otherReading));
+    void recommendCheapestPricePlans_withLimit() {
+        var electricityReading = new ElectricityReading(Instant.now().minusSeconds(1800), BigDecimal.valueOf(35.0));
+        var otherReading = new ElectricityReading(Instant.now(), BigDecimal.valueOf(3.0));
+        when(meterReadingService.getReadings(SMART_METER_ID))
+                .thenReturn(Optional.of(List.of(electricityReading, otherReading)));
 
         ResponseEntity<List<Map.Entry<String, BigDecimal>>> response =
                 controller.recommendCheapestPricePlans(SMART_METER_ID, 2);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         Map<String, Object> map = response.getBody().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey, entry -> entry.getValue().setScale(1, RoundingMode.HALF_UP)));
 
         var expectedPricePlanToCost = List.of(
-                new AbstractMap.SimpleEntry<>(BEST_PLAN_ID, BigDecimal.valueOf(9.4)),
-                new AbstractMap.SimpleEntry<>(SECOND_BEST_PLAN_ID, BigDecimal.valueOf(18.8)));
+                new AbstractMap.SimpleEntry<>(BEST_PLAN_ID, BigDecimal.valueOf(9.5)),
+                new AbstractMap.SimpleEntry<>(SECOND_BEST_PLAN_ID, BigDecimal.valueOf(19.0)));
 
         Map<String, Object> map2 = new HashMap<>();
         for (AbstractMap.SimpleEntry<String, BigDecimal> entry : expectedPricePlanToCost) {
             map2.put(entry.getKey(), entry.getValue());
         }
+
         assertThat(map).isEqualTo(map2);
     }
 
@@ -158,10 +166,10 @@ public class PricePlanComparatorControllerTest {
      * Verifica se todos os planos são retornados corretamente, mesmo quando o limite é maior do que o número de planos.
      */
     @Test
-    public void recommendCheapestPricePlans_limitHigherThanNumberOfEntries() {
+    void recommendCheapestPricePlans_limitHigherThanNumberOfEntries() {
         var reading0 = new ElectricityReading(Instant.now().minusSeconds(3600), BigDecimal.valueOf(25.0));
         var reading1 = new ElectricityReading(Instant.now(), BigDecimal.valueOf(3.0));
-        meterReadingService.storeReadings(SMART_METER_ID, List.of(reading0, reading1));
+        when(meterReadingService.getReadings(SMART_METER_ID)).thenReturn(Optional.of(List.of(reading0, reading1)));
 
         ResponseEntity<List<Map.Entry<String, BigDecimal>>> response =
                 controller.recommendCheapestPricePlans(SMART_METER_ID, 5);
@@ -187,9 +195,6 @@ public class PricePlanComparatorControllerTest {
      */
     private static Map<String, BigDecimal> getRoundedComparisons(Map<String, BigDecimal> originalComparisons) {
         Map<String, BigDecimal> roundedComparisons = new HashMap<>();
-
-        // A lógica de arredondamento foi extraída para um método separado para melhorar a clareza e reutilização do
-        // código.
         for (Map.Entry<String, BigDecimal> entry : originalComparisons.entrySet()) {
             String key = entry.getKey();
             BigDecimal value = entry.getValue();

@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.tw.energy.service.AccountService;
 import uk.tw.energy.service.PricePlanService;
 
-
 /**
  * Controlador responsável por comparar e recomendar planos de preços com base no consumo de eletricidade.
  */
@@ -28,7 +27,6 @@ public class PricePlanComparatorController {
     public static final String PRICE_PLAN_COMPARISONS_KEY = "pricePlanComparisons";
     private final PricePlanService pricePlanService;
     private final AccountService accountService;
-
 
     /**
      * Construtor para inicializar os serviços de planos de preços e contas.

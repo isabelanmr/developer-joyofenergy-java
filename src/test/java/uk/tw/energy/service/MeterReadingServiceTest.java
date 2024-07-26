@@ -8,7 +8,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class MeterReadingServiceTest {
+class MeterReadingServiceTest {
 
     private MeterReadingService meterReadingService;
 
@@ -18,12 +18,12 @@ public class MeterReadingServiceTest {
     }
 
     @Test
-    public void givenMeterIdThatDoesNotExistShouldReturnNull() {
+    void givenMeterIdThatDoesNotExistShouldReturnNull() {
         assertThat(meterReadingService.getReadings("unknown-id")).isEqualTo(Optional.empty());
     }
 
     @Test
-    public void givenMeterReadingThatExistsShouldReturnMeterReadings() {
+    void givenMeterReadingThatExistsShouldReturnMeterReadings() {
         meterReadingService.storeReadings("random-id", new ArrayList<>());
         assertThat(meterReadingService.getReadings("random-id")).isEqualTo(Optional.of(new ArrayList<>()));
     }

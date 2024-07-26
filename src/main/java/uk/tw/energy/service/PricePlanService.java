@@ -1,16 +1,14 @@
 package uk.tw.energy.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.*;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.tw.energy.domain.ElectricityReading;
 import uk.tw.energy.domain.PricePlan;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class PricePlanService {
@@ -34,18 +32,25 @@ public class PricePlanService {
 
         System.out.println("Calculating costs for smartMeterId: " + smartMeterId);
 
-        return Optional.of(pricePlans.stream()
-                .collect(Collectors.toMap(PricePlan::getPlanName, t -> calculateCost(electricityReadings.get(), t))));
+        // Converter a lista de pricePlans para uma lista mutável antes de realizar operações
+        List<PricePlan> mutablePricePlans = new ArrayList<>(pricePlans);
+
+        return Optional.of(mutablePricePlans.stream()
+                .collect(Collectors.toMap(
+                        PricePlan::getPlanName, t -> calculateCost(new ArrayList<>(electricityReadings.get()), t))));
     }
 
     private BigDecimal calculateCost(List<ElectricityReading> electricityReadings, PricePlan pricePlan) {
         BigDecimal totalCost = BigDecimal.ZERO;
 
-        electricityReadings.sort(Comparator.comparing(ElectricityReading::time));
+        // Converter a lista de electricityReadings para uma lista mutável antes de ordenar
+        List<ElectricityReading> mutableElectricityReadings = new ArrayList<>(electricityReadings);
 
-        for (int i = 0; i < electricityReadings.size() - 1; i++) {
-            ElectricityReading currentReading = electricityReadings.get(i);
-            ElectricityReading nextReading = electricityReadings.get(i + 1);
+        mutableElectricityReadings.sort(Comparator.comparing(ElectricityReading::time));
+
+        for (int i = 0; i < mutableElectricityReadings.size() - 1; i++) {
+            ElectricityReading currentReading = mutableElectricityReadings.get(i);
+            ElectricityReading nextReading = mutableElectricityReadings.get(i + 1);
 
             long secondsElapsed =
                     Duration.between(currentReading.time(), nextReading.time()).getSeconds();
@@ -54,7 +59,9 @@ public class PricePlanService {
                 continue;
             }
 
-            BigDecimal averageReading = (currentReading.reading().add(nextReading.reading()))
+            BigDecimal averageReading = currentReading
+                    .reading()
+                    .add(nextReading.reading())
                     .divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP);
 
             BigDecimal hoursElapsed = BigDecimal.valueOf(secondsElapsed / 3600.0);
